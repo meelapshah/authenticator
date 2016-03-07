@@ -20,6 +20,7 @@ import signal
 import sqlite3
 import struct
 import sys
+from termcolor import colored
 import time
 
 signal.signal(signal.SIGINT, lambda s,f: sys.exit(0))
@@ -78,7 +79,11 @@ def main(argv):
       print otp.zfill(6) + ' ' + email
     sec = int(time.time()) % 30
     while sec <= 30:
-      sys.stdout.write('\r[{0}{1}] {2} seconds left '.format('#'*sec, ' '*(30-sec), str(30-sec).rjust(2)))
+      msg = '\r[{0}{1}] {2} seconds left '.format('#'*sec, ' '*(30-sec), str(30-sec).rjust(2))
+      if sec <=25:
+        sys.stdout.write(msg)
+      else:
+        sys.stdout.write(colored(msg, 'red'))
       sys.stdout.flush()
       time.sleep(1)
       sec += 1
