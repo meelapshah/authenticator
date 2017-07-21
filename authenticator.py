@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 
 '''
 Get the otp database from your Android phone:
@@ -73,20 +74,25 @@ def main(argv):
     print otp.zfill(6)
     return 0
 
+  blocks = [u'', u'▏',u'▎',u'▍',u'▌',u'▋',u'▊',u'▉',u'█']
   while True:
     for email,secret in accounts:
       otp = str(get_totp_token(secret))
       print otp.zfill(6) + ' ' + email
-    sec = int(time.time()) % 30
+    sec = time.time() % 30
     while sec <= 30:
-      msg = '\r[{0}{1}] {2} seconds left '.format('#'*sec, ' '*(30-sec), str(30-sec).rjust(2))
-      if sec <=25:
+      bar = blocks[-1] * int(sec) + blocks[int(8 * (sec % 1))]
+      msg = u'\r{0}{1} {2} seconds left '.format(bar, '.'*(30-len(bar)), str(30-int(sec)).rjust(2))
+      if sec <= 25:
         sys.stdout.write(msg)
       else:
         sys.stdout.write(colored(msg, 'red'))
       sys.stdout.flush()
-      time.sleep(1)
-      sec += 1
+      time.sleep(0.125)
+      _sec = time.time() % 30
+      if _sec < sec:
+        break
+      sec = _sec
     print '\033[{}A\r'.format(len(accounts)),
 
 if __name__ == '__main__':
