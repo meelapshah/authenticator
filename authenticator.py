@@ -16,6 +16,7 @@ import base64
 from binascii import unhexlify
 import hashlib
 import hmac
+import json
 import os.path
 import signal
 import sqlite3
@@ -52,9 +53,17 @@ def get_hotp_token(secret, intervals_no):
 def get_totp_token(secret):
   return get_hotp_token(secret, intervals_no=int(time.time())//30)
 
-def main(argv):
+def load_accounts(db):
+  conn = sqlite3.connect(db)
+  cursor = conn.cursor()
+  accounts = cursor.execute('select email,secret from accounts').fetchall()
+  conn.close()
+  return accounts
+
+def main(argv=sys.argv[1:]):
   parser = argparse.ArgumentParser('Generate OTP secrets')
   parser.add_argument('sqlite_db')
+  parser.set_defaults(command=None)
 
   subparser = parser.add_subparsers()
   list_parser = subparser.add_parser('list')
@@ -70,10 +79,7 @@ def main(argv):
     print('db file does not exist')
     sys.exit(-1)
 
-  conn = sqlite3.connect(args.sqlite_db)
-  cursor = conn.cursor()
-  accounts = cursor.execute('select email,secret from accounts').fetchall()
-  conn.close()
+  accounts = load_accounts(args.sqlite_db)
 
   if args.command == 'list':
     print(*(a[0] for a in accounts), sep='\n')
@@ -108,5 +114,38 @@ def main(argv):
         sec = _sec
       print('\033[{}A\r'.format(1+len(accounts)), end=None)
 
+def fx_addon():
+  def getMessage():
+    rawLength = sys.stdin.buffer.read(4)
+    if len(rawLength) == 0:
+      sys.exit(0)
+    messageLength = struct.unpack('@I', rawLength)[0]
+    message = sys.stdin.buffer.read(messageLength).decode('utf-8')
+    return json.loads(message)
+
+  def encodeMessage(messageContent):
+    encodedContent = json.dumps(messageContent).encode('utf-8')
+    encodedLength = struct.pack('@I', len(encodedContent))
+    return {'length': encodedLength, 'content': encodedContent}
+
+  def sendMessage(encodedMessage):
+    sys.stdout.buffer.write(encodedMessage['length'])
+    sys.stdout.buffer.write(encodedMessage['content'])
+    sys.stdout.buffer.flush()
+
+  accounts = load_accounts('/home/meelap/encrypted/otp_secrets.sqlite')
+  while True:
+    receivedMessage = getMessage()
+    if receivedMessage == "list":
+      sendMessage(encodeMessage([a[0] for a in accounts]))
+    elif receivedMessage.startswith("gen:"):
+      otp = str(get_totp_token(dict(accounts)[receivedMessage[4:]]))
+      sendMessage(encodeMessage(otp.zfill(6)))
+    else:
+      pass
+
 if __name__ == '__main__':
-  main(sys.argv[1:])
+  if os.path.split(sys.argv[0])[1] == 'fx-authenticator':
+    fx_addon()
+  else:
+    main(sys.argv[1:])
