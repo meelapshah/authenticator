@@ -62,8 +62,8 @@ def load_accounts(db):
 
 def main(argv=sys.argv[1:]):
   parser = argparse.ArgumentParser('Generate OTP secrets')
-  parser.add_argument('sqlite_db')
-  parser.set_defaults(command=None)
+  parser.add_argument('-d', '--dbfile', default=os.path.expanduser('~/encrypted/otp_secrets.sqlite'))
+  parser.set_defaults(command='gen', one=None)
 
   subparser = parser.add_subparsers()
   list_parser = subparser.add_parser('list')
@@ -75,11 +75,11 @@ def main(argv=sys.argv[1:]):
 
   args = parser.parse_args(argv)
 
-  if not os.path.exists(args.sqlite_db):
+  if not os.path.exists(args.dbfile):
     print('db file does not exist')
     sys.exit(-1)
 
-  accounts = load_accounts(args.sqlite_db)
+  accounts = load_accounts(args.dbfile)
 
   if args.command == 'list':
     print(*(a[0] for a in accounts), sep='\n')
@@ -133,7 +133,7 @@ def fx_addon():
     sys.stdout.buffer.write(encodedMessage['content'])
     sys.stdout.buffer.flush()
 
-  accounts = load_accounts('/home/meelap/encrypted/otp_secrets.sqlite')
+  accounts = load_accounts(os.path.expanduser('~/encrypted/otp_secrets.sqlite'))
   while True:
     receivedMessage = getMessage()
     if receivedMessage == "list":
