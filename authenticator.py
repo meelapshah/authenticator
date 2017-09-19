@@ -37,13 +37,21 @@ def base32tohex(b32):
     bits = bits[:-1 * (len(bits) % 4)]
   return hex(int(bits, 2))[2:]
   
-def get_hotp_token(secret, intervals_no):
+def decode_secret(secret):
   try:
-    key = base64.b32decode(secret, True)
+    return base64.b32decode(secret, True)
   except:
-    # Dropbox's secret is 26 chars instead of 32
-    #import ipdb; ipdb.set_trace()
-    key = unhexlify(base32tohex(secret))
+    pass
+
+  try:
+    return base64.b32decode(secret + '=' * (8 - len(secret) % 8), True)
+  except:
+    pass
+
+  return secret
+
+def get_hotp_token(secret, intervals_no):
+  key = decode_secret(secret)
   msg = struct.pack(">Q", intervals_no)
   h = hmac.new(key, msg, hashlib.sha1).digest()
   o = h[19] & 15
@@ -51,7 +59,10 @@ def get_hotp_token(secret, intervals_no):
   return h
 
 def get_totp_token(secret):
-  return get_hotp_token(secret, intervals_no=int(time.time())//30)
+  try:
+    return get_hotp_token(secret, intervals_no=int(time.time())//30)
+  except:
+    return "error"
 
 def load_accounts(db):
   conn = sqlite3.connect(db)
