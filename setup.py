@@ -13,7 +13,7 @@ setup(
   entry_points={
     "console_scripts": [
       "authenticator = authenticator:main",
-      "fx-authenticator = authenticator:fx_addon",
+      # "fx-authenticator = authenticator:fx_addon",
     ]
   }
 )

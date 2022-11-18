@@ -36,7 +36,7 @@ def base32tohex(b32):
   if len(bits) % 4 != 0:
     bits = bits[:-1 * (len(bits) % 4)]
   return hex(int(bits, 2))[2:]
-  
+
 def decode_secret(secret):
   try:
     return base64.b32decode(secret, True)
@@ -98,9 +98,17 @@ def main(argv=sys.argv[1:]):
 
   if args.command == 'gen':
     if args.one:
-      otp = str(get_totp_token(dict(accounts)[args.one]))
-      print(otp.zfill(6))
-      return 0
+      otp = None
+      if args.one in dict(accounts):
+        otp = str(get_totp_token(dict(accounts)[args.one]))
+      else:
+        for n, s in accounts:
+          if args.one in n.lower():
+            otp = str(get_totp_token(s))
+      if otp:
+        print(otp.zfill(6))
+        return 0
+      return -1
 
     signal.signal(signal.SIGINT, lambda s,f: sys.exit(0))
 
